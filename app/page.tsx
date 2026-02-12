@@ -8,6 +8,7 @@ type VideoItem = {
   url: string;
   note?: string;
   createdAt: string;
+  thumbnailUrl?: string;
 };
 
 const STORAGE_KEY = "my-video-notes";
@@ -28,6 +29,37 @@ function loadItems(): VideoItem[] {
 function saveItems(items: VideoItem[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function extractYouTubeId(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl);
+    if (url.hostname === "youtu.be") {
+      return url.pathname.slice(1) || null;
+    }
+    if (
+      url.hostname.includes("youtube.com") &&
+      (url.pathname === "/watch" || url.pathname === "/shorts")
+    ) {
+      if (url.pathname === "/shorts") {
+        const id = url.pathname.split("/")[2];
+        return id || null;
+      }
+      const v = url.searchParams.get("v");
+      return v || null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function buildThumbnailUrl(link: string): string | undefined {
+  const youtubeId = extractYouTubeId(link);
+  if (youtubeId) {
+    return `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+  }
+  return undefined;
 }
 
 export default function HomePage() {
@@ -70,6 +102,7 @@ export default function HomePage() {
       url: url.trim(),
       note: note.trim() || undefined,
       createdAt: new Date().toISOString(),
+      thumbnailUrl: buildThumbnailUrl(url.trim()),
     };
 
     setItems((prev) => [newItem, ...prev]);
@@ -170,7 +203,7 @@ export default function HomePage() {
             filteredItems.map((item) => (
               <article
                 key={item.id}
-                className="group bg-slate-800/70 border border-slate-700 hover:border-cyan-400/60 rounded-2xl p-4 transition-colors flex gap-3"
+                className="group bg-slate-800/70 border border-slate-700 hover:border-cyan-400/60 rounded-2xl p-4 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5">
@@ -191,6 +224,31 @@ export default function HomePage() {
                   >
                     {item.url}
                   </a>
+                  {item.thumbnailUrl ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 block w-full max-w-xs md:max-w-sm aspect-video overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/60 hover:border-cyan-400/80 transition-colors"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.thumbnailUrl}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </a>
+                  ) : (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 flex w-full max-w-xs md:max-w-sm aspect-video rounded-xl border border-dashed border-slate-700/80 bg-slate-900/40 items-center justify-center text-[11px] text-slate-500 hover:border-cyan-400/60 transition-colors"
+                    >
+                      ไม่มีปกแสดง
+                    </a>
+                  )}
                   {item.note && (
                     <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
                       {item.note}
@@ -204,7 +262,7 @@ export default function HomePage() {
                     })}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="mt-3 flex justify-end">
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="text-[11px] text-slate-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
