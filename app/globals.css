@@ -1,27 +1,8 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  padding: 0;
-  margin: 0;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  @apply bg-slate-950 text-slate-50 antialiased;
 }
-
-button {
-  font-family: inherit;
-}
-
-input,
-textarea {
-  font-family: inherit;
-}
-
 
